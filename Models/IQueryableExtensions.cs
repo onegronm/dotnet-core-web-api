@@ -1,0 +1,35 @@
+﻿using System;
+using System.Linq;
+using System.Linq.Expressions;
+
+namespace HPlusSport.API.Models
+{
+    public static class IQueryableExtensions
+    {
+        /// <summary>
+        /// builds a lambda exp telling linq what property to order
+        /// </summary>
+        /// <typeparam name="TEntity"></typeparam>
+        /// <param name="items"></param>
+        /// <param name="sortBy"></param>
+        /// <param name="sortOrder"></param>
+        /// <returns></returns>
+        public static IQueryable<TEntity> OrderByCustom<TEntity>(this IQueryable<TEntity> items, string sortBy, string sortOrder)
+        {
+            var type = typeof(TEntity);
+            var expression2 = Expression.Parameter(type, "t");
+            var property = type.GetProperty(sortBy);
+            var expression1 = Expression.MakeMemberAccess(expression2, property);
+            var lambda = Expression.Lambda(expression1, expression2);
+            var result = Expression.Call(
+                typeof(Queryable),
+                sortOrder == "desc" ? "OrderByDescending" : "OrderBy",
+                new Type[] { type, property.PropertyType },
+                items.Expression,
+                Expression.Quote(lambda));
+
+            return items.Provider.CreateQuery<TEntity>(result);
+        }
+
+    }
+}
